@@ -365,7 +365,7 @@
               <MiscControls></MiscControls>
               <Define>STM32F10X_MD,USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>..\CORE;..\STM32F10x_FWLib\inc;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\HARDWARE\LED;..\HARDWARE\EXTI;..\HARDWARE\KEY;..\HARDWARE\BEEP;..\HARDWARE\TIMER;..\HARDWARE\UART;..\HARDWARE\ADC;..\HARDWARE\INC;..\HARDWARE\MESSAGE;..\OSAL</IncludePath>
+              <IncludePath>..\CORE;..\STM32F10x_FWLib\inc;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\HARDWARE\LED;..\HARDWARE\EXTI;..\HARDWARE\KEY;..\HARDWARE\BEEP;..\HARDWARE\TIMER;..\HARDWARE\UART;..\HARDWARE\ADC;..\HARDWARE\INC;..\HARDWARE\MESSAGE;..\OSAL;..\HARDWARE\ACTION;..\HARDWARE\WDG;..\HARDWARE\AT24CXX;..\HARDWARE\IIC</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -622,6 +622,26 @@
               <FileName>message.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\MESSAGE\message.c</FilePath>
+            </File>
+            <File>
+              <FileName>action.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\ACTION\action.c</FilePath>
+            </File>
+            <File>
+              <FileName>wdg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\WDG\wdg.c</FilePath>
+            </File>
+            <File>
+              <FileName>at24cxx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\AT24CXX\at24cxx.c</FilePath>
+            </File>
+            <File>
+              <FileName>myiic.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\IIC\myiic.c</FilePath>
             </File>
           </Files>
         </Group>

@@ -4,7 +4,7 @@
 #include "uart2.h"
 #include "type.h"
 
-#define MSG_STX   'A'
+#define MSG_STX   '*'
 #define MSG_ETX   '#'
 #define MSG_MAX_SIZE   (32)
 

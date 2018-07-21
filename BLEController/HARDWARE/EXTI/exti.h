@@ -23,6 +23,11 @@
 #define EXTI_KEY6_EVT                               0x0020
 #define EXTI_KEY7_EVT                               0x0040
 #define EXTI_KEY8_EVT                               0x0080
+#define EXTI_KEY9_EVT                               0x0100
+#define EXTI_KEY10_EVT                               0x0200
+#define EXTI_KEY11_EVT                               0x0400
+#define EXTI_KEY12_EVT                               0x0800
+#define EXTI_KEY13_EVT                               0x1000
 
 
 

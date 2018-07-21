@@ -30,8 +30,10 @@ void EXTIX_Init(uint8 task_id)
 	
 	Exti_TaskID = task_id;
 
-    KEY_Init();	 //	按键端口初始化
+    //KEY_Init();	 //	按键端口初始化
 
+    //return;
+    
   	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO,ENABLE);	//使能复用功能时钟
 
   //GPIOE.2 中断线以及中断初始化配置   下降沿触发
@@ -52,8 +54,32 @@ void EXTIX_Init(uint8 task_id)
     EXTI_InitStructure.EXTI_Line=EXTI_Line2;	//KEY2
     EXTI_Init(&EXTI_InitStructure);
 
+    GPIO_EXTILineConfig(GPIO_PortSourceGPIOD,GPIO_PinSource2);
+    EXTI_InitStructure.EXTI_Line=EXTI_Line2;	//KEY2
+    EXTI_Init(&EXTI_InitStructure);
+
     GPIO_EXTILineConfig(GPIO_PortSourceGPIOC,GPIO_PinSource3);
     EXTI_InitStructure.EXTI_Line=EXTI_Line3;	//KEY2
+    EXTI_Init(&EXTI_InitStructure);
+
+    GPIO_EXTILineConfig(GPIO_PortSourceGPIOC,GPIO_PinSource4);
+    EXTI_InitStructure.EXTI_Line=EXTI_Line4;	//KEY2
+    EXTI_Init(&EXTI_InitStructure);
+
+    GPIO_EXTILineConfig(GPIO_PortSourceGPIOC,GPIO_PinSource9);
+    EXTI_InitStructure.EXTI_Line=EXTI_Line9;   //KEY2
+    EXTI_Init(&EXTI_InitStructure);
+
+    GPIO_EXTILineConfig(GPIO_PortSourceGPIOB,GPIO_PinSource10);
+    EXTI_InitStructure.EXTI_Line=EXTI_Line10;   //KEY2
+    EXTI_Init(&EXTI_InitStructure);
+
+    GPIO_EXTILineConfig(GPIO_PortSourceGPIOB,GPIO_PinSource11);
+    EXTI_InitStructure.EXTI_Line=EXTI_Line11;   //KEY2
+    EXTI_Init(&EXTI_InitStructure);
+
+    GPIO_EXTILineConfig(GPIO_PortSourceGPIOC,GPIO_PinSource12);
+    EXTI_InitStructure.EXTI_Line=EXTI_Line12;   //KEY2
     EXTI_Init(&EXTI_InitStructure);
 
     GPIO_EXTILineConfig(GPIO_PortSourceGPIOC,GPIO_PinSource13);
@@ -89,25 +115,25 @@ void EXTIX_Init(uint8 task_id)
 
   	NVIC_InitStructure.NVIC_IRQChannel = EXTI3_IRQn;			//使能按键KEY1所在的外部中断通道
   	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x02;	//抢占优先级2 
-  	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x01;					//子优先级1 
+  	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x02;					//子优先级1 
   	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;								//使能外部中断通道
   	NVIC_Init(&NVIC_InitStructure);  	  //根据NVIC_InitStruct中指定的参数初始化外设NVIC寄存器
 
 	NVIC_InitStructure.NVIC_IRQChannel = EXTI4_IRQn;			//使能按键KEY0所在的外部中断通道
   	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x02;	//抢占优先级2 
-  	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x00;					//子优先级0 
+  	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x02;					//子优先级0 
   	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;								//使能外部中断通道
   	NVIC_Init(&NVIC_InitStructure);  	  //根据NVIC_InitStruct中指定的参数初始化外设NVIC寄存器
 
     NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;			//使能按键KEY0所在的外部中断通道
   	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x02;	//抢占优先级2 
-  	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x00;					//子优先级0 
+  	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x02;					//子优先级0 
   	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;								//使能外部中断通道
   	NVIC_Init(&NVIC_InitStructure);  	  //根据NVIC_InitStruct中指定的参数初始化外设NVIC寄存器
 
     NVIC_InitStructure.NVIC_IRQChannel = EXTI15_10_IRQn;            //使能按键KEY0所在的外部中断通道
   	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x02;	//抢占优先级2 
-  	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x00;					//子优先级0 
+  	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x02;					//子优先级0 
   	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;								//使能外部中断通道
   	NVIC_Init(&NVIC_InitStructure);  	  //根据NVIC_InitStruct中指定的参数初始化外设NVIC寄存器
     
@@ -170,17 +196,11 @@ void EXTI0_IRQHandler(void)
 {
 	delay_ms(10);//消抖
 	printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
-    
-	if(KEY07==1)	 	 //WK_UP按键
-	{				 
-		//BEEP=!BEEP;	
-		//printf("\r\n k07-1");
-	}
-    else if(KEY07==0)
+    if(KEY07 == 0)
     {
-        //printf("\r\n k07-0");
+        osal_set_event(Exti_TaskID, EXTI_KEY7_EVT);		 
     }
-    osal_set_event(Exti_TaskID, EXTI_KEY4_EVT);
+    
 	EXTI_ClearITPendingBit(EXTI_Line0); //清除LINE0上的中断标志位  
 }
 
@@ -188,11 +208,10 @@ void EXTI1_IRQHandler(void)
 {
 	delay_ms(10);//消抖
 	printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
-	if(KEY06==0)	  //按键KEY2
-	{
-		//LED0=!LED0;
-	}
-    osal_set_event(Exti_TaskID, EXTI_KEY5_EVT);
+    if(KEY09 == 0)
+    {
+        osal_set_event(Exti_TaskID, EXTI_KEY9_EVT);		 
+    }
 	EXTI_ClearITPendingBit(EXTI_Line1);  //清除LINE2上的中断标志位  
 }
 
@@ -202,11 +221,12 @@ void EXTI2_IRQHandler(void)
 {
 	delay_ms(10);//消抖
 	printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
-	if(KEY06==0)	  //按键KEY2
-	{
-		//LED0=!LED0;
-	}
-    osal_set_event(Exti_TaskID, EXTI_KEY6_EVT);
+    if(KEY11 == 0)
+    {
+        osal_set_event(Exti_TaskID, EXTI_KEY11_EVT);	 
+    }
+
+    
 	EXTI_ClearITPendingBit(EXTI_Line2);  //清除LINE2上的中断标志位  
 }
 //外部中断3服务程序
@@ -225,11 +245,11 @@ void EXTI4_IRQHandler(void)
 {
 	delay_ms(10);//消抖
 	printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
-	if(KEY06==0)	 //按键KEY0
-	{
-		//LED0=!LED0;
-		//LED1=!LED1; 
-	}		 
+    if(KEY13 == 0)
+    {
+        osal_set_event(Exti_TaskID, EXTI_KEY13_EVT);		 
+    }
+
 	EXTI_ClearITPendingBit(EXTI_Line4);  //清除LINE4上的中断标志位  
 }
 
@@ -265,6 +285,11 @@ void EXTI9_5_IRQHandler (void)
     if(EXTI_GetITStatus(EXTI_Line9) != RESET)          
     {
         printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
+        if(KEY04 == 0)
+        {
+            osal_set_event(Exti_TaskID, EXTI_KEY4_EVT);	 
+        }
+        
         EXTI_ClearITPendingBit(EXTI_Line9);
     }
 }
@@ -273,7 +298,6 @@ void EXTI15_10_IRQHandler(void)
 {
     delay_ms(10);//消抖
     
-
     if(EXTI_GetITStatus(EXTI_Line10) != RESET)
     {
         printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
@@ -292,19 +316,28 @@ void EXTI15_10_IRQHandler(void)
     }
     if(EXTI_GetITStatus(EXTI_Line13) != RESET)
     {
-        osal_set_event(Exti_TaskID, EXTI_KEY3_EVT);
+        if(KEY06 == 0)
+        {
+            osal_set_event(Exti_TaskID, EXTI_KEY6_EVT);	 
+        }
         printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
         EXTI_ClearITPendingBit(EXTI_Line13);
     }
     if(EXTI_GetITStatus(EXTI_Line14) != RESET)
     {
-        osal_set_event(Exti_TaskID, EXTI_KEY1_EVT);
+        if(KEY08 == 0)
+        {
+            osal_set_event(Exti_TaskID, EXTI_KEY8_EVT);	 
+        }
         printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
         EXTI_ClearITPendingBit(EXTI_Line14);
     }
     if(EXTI_GetITStatus(EXTI_Line15) != RESET)
     {
-        osal_set_event(Exti_TaskID, EXTI_KEY2_EVT);
+        if(KEY10 == 0)
+        {
+            osal_set_event(Exti_TaskID, EXTI_KEY10_EVT);	 
+        }
         printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
         EXTI_ClearITPendingBit(EXTI_Line15);
     }
@@ -346,10 +379,10 @@ uint16 EXTIX_ProcessEvent( uint8 task_id, uint16 events )
 
     if( events & EXTI_KEY4_EVT ) 
     {
-        //printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
-        ledId = 4;
-        sprintf(bytes, "AT+LED%d\r\n", ledId);
-        uart2_comm_write(bytes, strlen(bytes));
+        printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
+        //ledId = 4;
+        //sprintf(bytes, "AT+LED%d\r\n", ledId);
+        //uart2_comm_write(bytes, strlen(bytes));
         return (events ^ EXTI_KEY4_EVT);
     }
 
@@ -365,28 +398,75 @@ uint16 EXTIX_ProcessEvent( uint8 task_id, uint16 events )
     if( events & EXTI_KEY6_EVT )
     {
         //printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
-        ledId = 6;
-        sprintf(bytes, "AT+LED%d\r\n", ledId);
-        uart2_comm_write(bytes, strlen(bytes));
+        //ledId = 6;
+        //sprintf(bytes, "AT+LED%d\r\n", ledId);
+        //uart2_comm_write(bytes, strlen(bytes));
+        // freq +
+        PWM_level_up(1);
         return (events ^ EXTI_KEY6_EVT);
     }
 
     if( events & EXTI_KEY7_EVT )
     {
         //printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
-        ledId = 7;
-        sprintf(bytes, "AT+LED%d\r\n", ledId);
-        uart2_comm_write(bytes, strlen(bytes));
+        //ledId = 7;
+        //sprintf(bytes, "AT+LED%d\r\n", ledId);
+        //uart2_comm_write(bytes, strlen(bytes));
+        // freq -
+        PWM_level_down(1);
         return (events ^ EXTI_KEY7_EVT);
     }
 
     if( events & EXTI_KEY8_EVT )
     {
         //printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
-        ledId = 8;
-        sprintf(bytes, "AT+LED%d\r\n", ledId);
-        uart2_comm_write(bytes, strlen(bytes));
+        //ledId = 8;
+        //sprintf(bytes, "AT+LED%d\r\n", ledId);
+        //uart2_comm_write(bytes, strlen(bytes));
+        PWM_level_up(2);
         return (events ^ EXTI_KEY8_EVT);
+    }
+
+    if( events & EXTI_KEY9_EVT )
+    {
+        //printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
+        //ledId = 8;
+        //sprintf(bytes, "AT+LED%d\r\n", ledId);
+        //uart2_comm_write(bytes, strlen(bytes));
+        //GPIO_onoff();
+        PWM_level_down(2);
+        return (events ^ EXTI_KEY9_EVT);
+    }
+
+    if( events & EXTI_KEY10_EVT )
+    {
+        //printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
+        //ledId = 8;
+        //sprintf(bytes, "AT+LED%d\r\n", ledId);
+        //uart2_comm_write(bytes, strlen(bytes));
+        PWM_level_up(3);
+        return (events ^ EXTI_KEY10_EVT);
+    }
+
+    if( events & EXTI_KEY11_EVT )
+    {
+        //printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
+        //ledId = 8;
+        //sprintf(bytes, "AT+LED%d\r\n", ledId);
+        //uart2_comm_write(bytes, strlen(bytes));
+        //GPIO_onoff();
+        PWM_level_down(3);
+        return (events ^ EXTI_KEY11_EVT);
+    }
+
+    if( events & EXTI_KEY13_EVT )
+    {
+        //printf("\r\n L:%d %s", __LINE__, __FUNCTION__);
+        //ledId = 8;
+        //sprintf(bytes, "AT+LED%d\r\n", ledId);
+        //uart2_comm_write(bytes, strlen(bytes));
+        //GPIO_onoff();
+        return (events ^ EXTI_KEY13_EVT);
     }
 }
 

@@ -62,45 +62,63 @@ void TIM3_IRQHandler(void)   //TIM3中断
 //arr：自动重装值
 //psc：时钟预分频数
 
-void TIM2_PWM_Init(u16 arr,u16 psc)
+pTimerHandler tim2_handler = NULL;
+void TIM2_Int_Init(u16 arr,u16 psc)
 {  
-	GPIO_InitTypeDef GPIO_InitStructure;
-	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
-	TIM_OCInitTypeDef  TIM_OCInitStructure;
-	
+    TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
 
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
- 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB  | RCC_APB2Periph_AFIO, ENABLE);  //使能GPIO外设和AFIO复用功能模块时钟使能
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE); //ê±?óê1?ü
 	
-	GPIO_PinRemapConfig(GPIO_PartialRemap_TIM3, ENABLE); //Timer3部分重映射  TIM3_CH2->PB5                                                                       	 //用于TIM3的CH2输出的PWM通过该LED显示
+	//?¨ê±?÷TIM33?ê??ˉ
+	TIM_TimeBaseStructure.TIM_Period = arr; //éè???ú??ò????üD?ê??t×°è????ˉμ?×??ˉ??×°????′??÷?ü?úμ??μ	
+	TIM_TimeBaseStructure.TIM_Prescaler =psc; //éè??ó?à′×÷?aTIMxê±?ó?μ?ê3yêyμ??¤·??μ?μ
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1; //éè??ê±?ó·???:TDTS = Tck_tim
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;  //TIM?òé???êy?￡ê?
+	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure); //?ù?Y???¨μ?2?êy3?ê??ˉTIMxμ?ê±???ùêyμ￥??
  
-   //设置该引脚为复用输出功能,输出TIM3 CH2的PWM脉冲波形
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5; //TIM_CH2
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;  //复用推挽输出
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-	//GPIO_WriteBit(GPIOA, GPIO_Pin_7,Bit_SET); // PA7上拉	
+	TIM_ITConfig(TIM2,TIM_IT_Update,ENABLE ); //ê1?ü???¨μ?TIM3?D??,?êDí?üD??D??
 
-	TIM_TimeBaseStructure.TIM_Period = arr; //设置在下一个更新事件装入活动的自动重装载寄存器周期的值	 80K
-	TIM_TimeBaseStructure.TIM_Prescaler =psc; //设置用来作为TIMx时钟频率除数的预分频值  不分频
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0; //设置时钟分割:TDTS = Tck_tim
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;  //TIM向上计数模式
-	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure); //根据TIM_TimeBaseInitStruct中指定的参数初始化TIMx的时间基数单位
-	
-	 
-	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM2; //选择定时器模式:TIM脉冲宽度调制模式2
-	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable; //比较输出使能
-	TIM_OCInitStructure.TIM_Pulse = 0; //设置待装入捕获比较寄存器的脉冲值
-	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High; //输出极性:TIM输出比较极性高
-	TIM_OC2Init(TIM3, &TIM_OCInitStructure);  //根据TIM_OCInitStruct中指定的参数初始化外设TIMx
-	TIM_OC2PreloadConfig(TIM3, TIM_OCPreload_Enable);  //使能TIMx在CCR2上的预装载寄存器
-	
-	TIM_ARRPreloadConfig(TIM3, ENABLE); //使能TIMx在ARR上的预装载寄存器
-	
- 
-	TIM_Cmd(TIM3, ENABLE);  //使能TIMx外设
- 
+	//?D??ó??è??NVICéè??
+	NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;  //TIM3?D??
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;  //?è??ó??è??0??
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;  //′óó??è??3??
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE; //IRQí¨μà±?ê1?ü
+	NVIC_Init(&NVIC_InitStructure);  //3?ê??ˉNVIC??′??÷
 
+	TIM_Cmd(TIM2, ENABLE);  //ê1?üTIMx	
+}
+
+void TIM2_IRQHandler(void)   //TIM3?D??
+{
+	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)  //?ì2éTIM3?üD??D??·￠éúó?·?
+	{
+		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);  //??3yTIMx?üD??D??±ê?? 
+		//LED1=!LED1;
+		if(NULL != tim2_handler)
+		{
+            tim2_handler();
+            printf("\r\n TIM2 IRQ");
+		}
+        else
+        {
+		    printf("\r\n TIM2 IRQ");
+        }
+    }
+}
+
+void TIM2_Start(pTimerHandler handler)
+{
+    printf("\r\n %s()", __FUNCTION__);
+    tim2_handler = handler;
+    TIM2_Int_Init(4999,7199);
+}
+
+void TIM2_Stop(void)
+{
+    printf("\r\n %s()", __FUNCTION__);
+    tim2_handler = NULL;
+    TIM_Cmd(TIM2, DISABLE);
 }
 
 
@@ -154,6 +172,41 @@ void TIM3_PWM_Init(u16 arr,u16 psc)
  
 
 }
+
+
+//í¨ó??¨ê±?÷3?D??3?ê??ˉ
+//?aà?ê±?ó?????aAPB1μ?2±?￡???APB1?a36M
+//arr￡o×??ˉ??×°?μ?￡
+//psc￡oê±?ó?¤·??μêy
+//?aà?ê1ó?μ?ê??¨ê±?÷3!
+void TIM4_Int_Init(u16 arr,u16 psc)
+{
+    TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
+
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE); //ê±?óê1?ü
+	
+	//?¨ê±?÷TIM33?ê??ˉ
+	TIM_TimeBaseStructure.TIM_Period = arr; //éè???ú??ò????üD?ê??t×°è????ˉμ?×??ˉ??×°????′??÷?ü?úμ??μ	
+	TIM_TimeBaseStructure.TIM_Prescaler =psc; //éè??ó?à′×÷?aTIMxê±?ó?μ?ê3yêyμ??¤·??μ?μ
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1; //éè??ê±?ó·???:TDTS = Tck_tim
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;  //TIM?òé???êy?￡ê?
+	TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure); //?ù?Y???¨μ?2?êy3?ê??ˉTIMxμ?ê±???ùêyμ￥??
+ 
+	TIM_ITConfig(TIM4,TIM_IT_Update,ENABLE ); //ê1?ü???¨μ?TIM3?D??,?êDí?üD??D??
+
+	//?D??ó??è??NVICéè??
+	NVIC_InitStructure.NVIC_IRQChannel = TIM4_IRQn;  //TIM3?D??
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;  //?è??ó??è??0??
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;  //′óó??è??3??
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE; //IRQí¨μà±?ê1?ü
+	NVIC_Init(&NVIC_InitStructure);  //3?ê??ˉNVIC??′??÷
+
+
+	TIM_Cmd(TIM4, ENABLE);  //ê1?üTIMx					 
+}
+//?¨ê±?÷3?D??·t??3ìDò
+
 
 #if 0
 //定时器5通道1输入捕获配置
@@ -245,75 +298,68 @@ void TIM5_IRQHandler(void)
 
 #endif
 
-//TIM4 CH1 PWM输出设置 
-//PWM输出初始化
-//arr：自动重装值
-//psc：时钟预分频数
-void TIM4_PWM_Init(u16 arr,u16 psc)
-{		 					 
-	
- 	
-	GPIO_InitTypeDef GPIO_InitStructure;
-	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
-	TIM_OCInitTypeDef  TIM_OCInitStructure;
-	
 
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE); //使能TIMx外设
- 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);  //使能GPIOB外设时钟使能
-	
- 
-   //设置该引脚为复用输出功能,输出TIM4 CH1的PWM脉冲波形
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6; //TIM_CH1
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;  //复用功能输出
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(GPIOB, &GPIO_InitStructure); //初始化GPIO
- 
-	TIM_TimeBaseStructure.TIM_Period = arr; //设置自动重装载周期值
-	TIM_TimeBaseStructure.TIM_Prescaler =psc; //设置预分频值 不分频
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0; //设置时钟分割:TDTS = Tck_tim
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;  //TIM向上计数模式
-	TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure); //根据指定的参数初始化TIMx
-	
-	 
-	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM2; //CH1 PWM2模式	
-	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable; //比较输出使能
-	TIM_OCInitStructure.TIM_Pulse = 0; //设置待装入捕获比较寄存器的脉冲值
-	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low; //OC1 低电平有效 
-	TIM_OC1Init(TIM4, &TIM_OCInitStructure);  //根据指定的参数初始化外设TIMx
 
-	TIM_OC1PreloadConfig(TIM4, TIM_OCPreload_Enable);  //CH1 预装载使能
-	
-	TIM_ARRPreloadConfig(TIM4, ENABLE); //使能TIMx在ARR上的预装载寄存器
-	
-	TIM_Cmd(TIM4, ENABLE);  //使能TIMx
-	   										  
-} 
+#define AUTO_MODE  (0)
+#define MANUAL_MODE  (1)
+u8 curr_mode = 0; // 0:auto   1: manual
 
-static u16 pwm1_curve[30] = {
-    0, 30, 60, 120, 4, 5, 6, 7, 8, 9,
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 1000,
+void PWM_SetMode(u8 mode)
+{
+    if(mode != curr_mode)
+    {
+        printf("mode:%d->%d", curr_mode, mode);
+        curr_mode = mode;
+        PWM_level_reset(1);
+    }
+}
+
+#if 0
+static u16 curve1[11] = {
+    0, 17, 34, 52, 71, 90, 110, 131, 152, 175, 199
+};
+static u16 curve2[11] = {
+    0, 65, 118, 175, 255, 335, 420, 520, 640, 775, 999
+};
+static u16 curve3[30] = {
+    0, 18, 35, 53, 75, 89, 112, 136, 158, 179,
+    204, 232, 260, 287, 316, 346, 375, 410, 441, 481,
+    516, 561, 601, 647, 696, 745, 795, 857, 916, 999
+};
+static u16 curve4[26] = {
+    0, 17, 39, 60, 83, 107, 132, 160, 188, 215,
+    245, 278, 311, 346, 380, 421, 461, 505, 552, 601,
+    655, 705, 770, 833, 899, 999
+};
+#endif
+#define PWM_MAX   (4)
+u8 curr_level[PWM_MAX];
+u8 max_level[PWM_MAX];
+u16* pwm_curve[PWM_MAX];
+
+
+#if 1
+static u16 pwm1_curve[11] = {
+    17, 34, 52, 71, 90, 110, 131, 152, 175, 199
 };
 
-u8 pwm1_level_max;
-u8 pwm1_level_cur;
-
-
-static u16 pwm2_curve[30] = {
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 1000,
+static u16 pwm2_curve[26] = {
+    0, 17, 39, 60, 83, 107, 132, 160, 188, 215,
+    245, 278, 311, 346, 380, 421, 461, 505, 552, 601,
+    655, 705, 770, 833, 899, 999
 };
-u8 pwm2_level_max;
-u8 pwm2_level_cur;
 
 static u16 pwm3_curve[30] = {
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 1000,
+    0, 18, 35, 53, 75, 89, 112, 136, 158, 179,
+    204, 232, 260, 287, 316, 346, 375, 410, 441, 481,
+    516, 561, 601, 647, 696, 745, 795, 857, 916, 999
 };
-u8 pwm3_level_max;
-u8 pwm3_level_cur;
+
+static u16 pwm4_curve[11] = {
+    0, 65, 118, 175, 255, 335, 420, 520, 640, 775, 999
+};
+#endif
+
 
 
 #define PWM_FREQ_ARR  (1000)
@@ -322,126 +368,264 @@ void PWM_Init(void)
     //Pwm_taskID = task_id;
     int i = 0;
 
-    TIM3_PWM_Init((PWM_FREQ_ARR - 1),72);    //不分频。PWM频率=72000/72000=80Khz
+    TIM3_PWM_Init((PWM_FREQ_ARR - 1),4);    //不分频。PWM频率=72000000/72/1000=1Khz
     
+    curr_level[0] = 0;
+    curr_level[1] = 0;
+    curr_level[2] = 0;
+    curr_level[3] = 0;
+    
+    max_level[0] = sizeof(pwm1_curve)/sizeof(u16);
+    max_level[1] = sizeof(pwm2_curve)/sizeof(u16);
+    max_level[2] = sizeof(pwm3_curve)/sizeof(u16);
+    max_level[3] = sizeof(pwm4_curve)/sizeof(u16);
 
-    pwm1_level_max = sizeof(pwm1_curve)/sizeof(u16);
-    pwm2_level_max = sizeof(pwm2_curve)/sizeof(u16);
-    pwm3_level_max = sizeof(pwm3_curve)/sizeof(u16);
+    pwm_curve[0] = pwm1_curve;
+    pwm_curve[1] = pwm2_curve;
+    pwm_curve[2] = pwm3_curve;
+    pwm_curve[3] = pwm4_curve;
 
-    pwm1_level_cur = 0;
-    pwm2_level_cur = 0;
-    pwm3_level_cur = 0;
+    printf("\r\n %d %d %d %d", max_level[0], max_level[1], max_level[2], max_level[3]);
 
-    for(i = 0; i < pwm1_level_max; i++)
-    {
-        pwm1_curve[i] = PWM_FREQ_ARR/pwm1_level_max * i;
-    }
-
-    for(i = 0; i < pwm2_level_max; i++)
-    {
-        pwm2_curve[i] = PWM_FREQ_ARR/pwm2_level_max * i;
-    }
-
-    for(i = 0; i < pwm3_level_max; i++)
-    {
-        pwm3_curve[i] = PWM_FREQ_ARR/pwm3_level_max * i;
-    }
-
-    TIM_SetCompare1(TIM3,pwm1_curve[pwm1_level_cur]);//初始值为0	
-    TIM_SetCompare2(TIM3,pwm2_curve[pwm2_level_cur]);//初始值为0	
-    TIM_SetCompare3(TIM3,pwm3_curve[pwm3_level_cur]);//初始值为0
+    TIM_SetCompare1(TIM3,0);//初始值为0	
+    TIM_SetCompare2(TIM3,0);//初始值为0	
+    TIM_SetCompare3(TIM3,0);//初始值为0
 }
 
 void PWM_Set(uint8 id, uint8 level)
 {
-    if(1 == id && level < pwm1_level_max)
+    unsigned char bytes[32];
+    if(id >= PWM_MAX)
     {
-        TIM_SetCompare1(TIM3,pwm1_curve[level]);
-        pwm1_level_cur = level;
+        return;
     }
-    else if(2 == id && level < pwm2_level_max)
+
+    if((level < max_level[id]) && (level != curr_level[id]))
     {
-        TIM_SetCompare2(TIM3,pwm2_curve[level]);
-        pwm2_level_cur = level;
-    }
-    else if(3 == id && level < pwm3_level_max)
-    {
-        TIM_SetCompare3(TIM3,pwm3_curve[level]);
-        pwm3_level_cur = level;
+        printf("\r\nL:%d %s() id(%d) level:%d value:%d", __LINE__, __FUNCTION__, id, level, curr_level[id]);
+        switch(id)
+        {
+            case 0:
+                TIM_SetCompare1(TIM3,pwm_curve[id][level]);
+                curr_level[id] = level;
+                sprintf(bytes, "AT+BLE+FREQ%d\r\n", level);
+                uart2_comm_write(bytes, strlen(bytes));
+                break;
+            case 1:
+                TIM_SetCompare2(TIM3,pwm_curve[id][level]);
+                curr_level[id] = level;
+                sprintf(bytes, "AT+BLE+AUTO%d\r\n", level);
+                uart2_comm_write(bytes, strlen(bytes));
+                break;
+            case 2:
+                TIM_SetCompare3(TIM3,pwm_curve[id][level]);
+                curr_level[id] = level;
+                sprintf(bytes, "AT+BLE+TIME%d\r\n", level);
+                uart2_comm_write(bytes, strlen(bytes));
+                break;
+            case 3:
+                TIM_SetCompare2(TIM3,pwm_curve[id][level]);
+                curr_level[id] = level;
+                sprintf(bytes, "AT+BLE+MANUAL%d\r\n", level);
+                uart2_comm_write(bytes, strlen(bytes));
+                break;
+            default:
+                break;
+        }
     }
 }
-uint8 PWM_Get(uint8 id)
+
+void PWM_Notify(uint8 id)
 {
-    switch(id)
+    unsigned char bytes[20];
+    if(id >= PWM_MAX)
     {
-        case 1:
-            return pwm1_level_cur;
-        case 2:
-            return pwm2_level_cur;
-        case 3:
-            return pwm3_level_cur;
-        default:
-            return 0;
+        return;
+    }
+    if(0 == id)
+    {
+        sprintf(bytes, "AT+BLE+FREQ%d\r\n", curr_level[id]);
+        uart2_comm_write(bytes, strlen(bytes));  
+    }
+    else if(1 == id)
+    {
+        sprintf(bytes, "AT+BLE+AUTO%d\r\n", curr_level[id]);
+        uart2_comm_write(bytes, strlen(bytes));  
+    }
+    else if(2 == id)
+    {
+        sprintf(bytes, "AT+BLE+TIME%d\r\n", curr_level[id]);
+        uart2_comm_write(bytes, strlen(bytes));
+    }
+    else if(3 == id)
+    {
+        sprintf(bytes, "AT+BLE+MANUAL%d\r\n", curr_level[id]);
+        uart2_comm_write(bytes, strlen(bytes)); 
     }
 }
+
 void PWM_level_up(uint8 id)
 {
+    uint8 id_ = id;
     uint8 level;
-    switch(id)
+
+    if(id >= 3)
     {
-        case 1:
-            if(pwm1_level_cur < (pwm1_level_max - 1))
-            {
-                level = pwm1_level_cur + 1;
-            }
-            break;
-        case 2:
-            if(pwm2_level_cur < (pwm2_level_max - 1))
-            {
-                level = pwm2_level_cur + 1;
-            }
-            break;
-        case 3:
-            if(pwm3_level_cur < (pwm3_level_max - 1))
-            {
-                level = pwm3_level_cur + 1;
-            }
-            break;
-        default:
-            return;
+        return;
     }
 
-    PWM_Set(id, level);
+    if((1 == curr_mode) && (1 == id))
+    {
+        id_ = 3;
+    }
+
+    if(curr_level[id_] < (max_level[id_] - 1))
+    {
+        level = curr_level[id_] + 1;
+    }
+    else
+    {
+        level = (max_level[id_] - 1);
+    }
+    
+    PWM_SetValue(id, pwm_curve[id_][level]);
+    curr_level[id_] = level;
+    PWM_Notify(id_);
 }
+
+void PWM_level_reset(uint8 id)
+{
+    uint8 id_ = id;
+    uint8 level;
+
+    if(id >= 3)
+    {
+        return;
+    }
+
+    if((1 == curr_mode) && (1 == id))
+    {
+        id_ = 3;
+    }
+
+    level = curr_level[id_];
+    
+    PWM_SetValue(id, pwm_curve[id_][level]);
+    curr_level[id_] = level;
+    PWM_Notify(id_);
+}
+
+
 void PWM_level_down(uint8 id)
 {
-    uint8 level;
+    uint8 id_ = id;
+    uint8 level = 0;
+
+    if(id >= 3)
+    {
+        return;
+    }
+
+    if((1 == curr_mode) && (1 == id))
+    {
+        id_ = 3;
+    }
+
+    if(curr_level[id_] > 0)
+    {
+        level = curr_level[id_] - 1;
+    }
+    
+    PWM_SetValue(id, pwm_curve[id_][level]);
+    curr_level[id_] = level;
+    PWM_Notify(id_);
+}
+
+void PWM_SetValue(uint8 id, uint32 value)
+{
+    if((0 == id) && (value <= PWM_FREQ_ARR))
+    {
+        printf("\r\nL:%d %s() id(%d) value:%d", __LINE__, __FUNCTION__, id, value);
+        TIM_SetCompare1(TIM3,value);
+    }
+    else if((1 == id) && (value <= PWM_FREQ_ARR))
+    {
+        printf("\r\nL:%d %s() id(%d) value:%d", __LINE__, __FUNCTION__, id, value);
+        TIM_SetCompare2(TIM3,value);
+    }
+    else if((2 == id) && (value <= PWM_FREQ_ARR))
+    {
+        printf("\r\nL:%d %s() id(%d) value:%d", __LINE__, __FUNCTION__, id, value);
+        TIM_SetCompare3(TIM3,value);
+    }
+}
+
+void PWM_ValueUp(uint8 id)
+{
+    u32 value = 0;
     switch(id)
     {
         case 1:
-            if(pwm1_level_cur > 0)
+            value = 0;
+            value++;
+            value %= PWM_FREQ_ARR;
+            break;
+        case 2:
+            value = 0;
+            value++;
+            value %= PWM_FREQ_ARR;
+            break;
+        case 3:
+            value = 0;
+            value++;
+            value %= PWM_FREQ_ARR;
+            break;
+        default:
+            return;
+    }
+
+    PWM_SetValue(id, value);
+}
+
+void PWM_ValueDown(uint8 id)
+{
+    u32 value = 0;
+    switch(id)
+    {
+        case 1:
+            value = 0;
+            if(value > 0)
             {
-                level = pwm1_level_cur - 1;
+                value--;
             }
             break;
         case 2:
-            if(pwm2_level_cur > 0)
+            value = 0;
+            if(value > 0)
             {
-                level = pwm2_level_cur - 1;
+                value--;
             }
             break;
         case 3:
-            if(pwm3_level_cur > 0)
+            value = 0;
+            if(value > 0)
             {
-                level = pwm3_level_cur - 1;
+                value--;
             }
             break;
         default:
             return;
     }
 
-    PWM_Set(id, level);
+    PWM_SetValue(id, value);
 }
 
+
+void PWM_SetCurrLevel(u8* pCurr)
+{
+    curr_level[0] = pCurr[0];
+    curr_level[1] = pCurr[1];
+    curr_level[2] = pCurr[2];
+    curr_level[3] = pCurr[3];
+}
 
